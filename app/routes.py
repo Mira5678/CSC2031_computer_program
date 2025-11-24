@@ -3,6 +3,7 @@ from flask import request, render_template, redirect, url_for, session, Blueprin
 from sqlalchemy import text
 from app import db
 from app.models import User
+from .forms import Forms, sanitize
 
 main = Blueprint('main', __name__)
 
@@ -43,7 +44,21 @@ def register():
         role = request.form.get('role', 'user')
         db.session.execute(text(f"INSERT INTO user (username, password, role, bio) VALUES ('{username}', '{password}', '{role}', '{bio}')"))
         db.session.commit()
+
+        user = User.query.filter_by(username=username).first()
+
+        if user:
+            flash('Email address already exists')
+            return redirect(url_for('main.register'))
+
+        #add new user to database
+        new_user = User(username=username, password=password, role=user, bio=bio) #Registered users are assigned the "user" role by default
+        db.session.add(new_user)
+        db.session.commit()
+
         return redirect(url_for('main.login'))
+
+
     return render_template('register.html')
 
 @main.route('/admin-panel')
